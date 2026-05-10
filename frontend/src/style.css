@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Tailwind v4: dark mode via .dark class */
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-primary: #1d4ed8;
+  --color-secondary: #0f766e;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MODO CLARO — usa .light (aplicada en el wrapper raíz cuando darkMode=false)
+   Sustituye :where(:not(.dark)) que no funcionaba bien porque <html>/<body>
+   nunca tienen .dark y hacían que los selectores se aplicaran siempre.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Tarjetas de stats (fondo sólido suave) */
+.light .bg-gray-800\/60,
+.light .bg-gray-800\/50 {
+  background: white !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 16px rgba(99,102,241,0.06), 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+.light .bg-blue-900\/30  { background: #eff6ff !important; border-color: #bfdbfe !important; }
+.light .bg-purple-900\/30 { background: #faf5ff !important; border-color: #e9d5ff !important; }
+.light .bg-green-900\/30  { background: #f0fdf4 !important; border-color: #bbf7d0 !important; }
+.light .bg-yellow-900\/30,
+.light .bg-amber-900\/30  { background: #fffbeb !important; border-color: #fde68a !important; }
+
+/* Texto */
+.light .text-white     { color: #1e293b !important; }
+.light .text-gray-400  { color: #64748b !important; }
+.light .text-gray-300  { color: #475569 !important; }
+.light .text-gray-500  { color: #94a3b8 !important; }
+.light .text-blue-400  { color: #2563eb !important; }
+.light .text-purple-400 { color: #7c3aed !important; }
+.light .text-green-400 { color: #16a34a !important; }
+.light .text-yellow-400 { color: #b45309 !important; }
+.light .text-amber-400  { color: #b45309 !important; }
+
+/* Filas de lista */
+.light .bg-gray-800\/70 {
+  background: #f8faff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs y selects */
+.light .bg-gray-800,
+.light .bg-gray-700\/80,
+.light .bg-gray-700 {
+  background: white !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+.light .bg-gray-800\/30 {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Tabs */
+.light .bg-gray-800\/60 {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* Barras de progreso track */
+.light .bg-gray-700 { background: #e2e8f0 !important; }
