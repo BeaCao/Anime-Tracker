@@ -202,24 +202,24 @@ onMounted(() => {
       </div>
 
       <!-- Barra de navegación superior (Premium Floating) -->
-      <header class="fixed top-0 inset-x-0 z-40 px-4 py-8 pointer-events-none">
-        <nav class="glass-nav max-w-6xl mx-auto flex items-center justify-between gap-8 px-10 py-3 rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
+      <header class="fixed top-0 inset-x-0 z-40 px-2 sm:px-4 py-4 md:py-8 pointer-events-none">
+        <nav class="glass-nav max-w-6xl mx-auto flex items-center justify-between gap-2 md:gap-8 px-4 md:px-10 py-2.5 md:py-3 rounded-2xl md:rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
           
           <!-- Logotipo AniKiroku -->
           <button
             @click="goTo('explore')"
-            class="logo-btn flex items-center gap-3.5 group transition-transform active:scale-95"
+            class="logo-btn flex items-center gap-2 md:gap-3.5 group transition-transform active:scale-95"
           >
-            <div class="p-2.5 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
-              <span class="text-2xl">🎌</span>
+            <div class="p-1.5 md:p-2.5 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl md:rounded-2xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
+              <span class="text-xl md:text-2xl">🎌</span>
             </div>
-            <span class="logo-text text-2xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
+            <span class="logo-text text-lg md:text-2xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent hidden sm:inline-block">
               AniKiroku
             </span>
           </button>
 
           <!-- Enlaces de navegación principal -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1 md:gap-3">
             <button
               v-for="item in [
                 { view: 'explore', icon: '🔍', label: 'Explorar', color: 'blue' },
@@ -234,12 +234,12 @@ onMounted(() => {
               ]"
               class="nav-btn"
             >
-              <span>{{ item.icon }}</span>
-              <span>{{ item.label }}</span>
+              <span class="text-base md:text-lg">{{ item.icon }}</span>
+              <span class="hidden md:inline">{{ item.label }}</span>
             </button>
 
-            <!-- Divisor visual entre navegación y configuración -->
-            <div class="w-px h-5 bg-white/10 mx-1"></div>
+            <!-- Divisor visual -->
+            <div class="w-px h-5 bg-black/10 dark:bg-white/10 mx-1 hidden sm:block"></div>
 
             <!-- Interruptor de Modo Oscuro -->
             <button @click="toggleDark" class="icon-btn" :title="darkMode ? 'Modo claro' : 'Modo oscuro'">
@@ -278,7 +278,7 @@ onMounted(() => {
       </header>
 
       <!-- Contenido Principal Dinámico -->
-      <div class="relative z-10 max-w-7xl mx-auto px-4 pt-32 pb-12">
+      <div class="relative z-10 max-w-7xl mx-auto px-4 pt-24 md:pt-32 pb-12">
 
         <!-- VISTA: EXPLORADOR DE ANIMES -->
         <main v-if="activeView === 'explore'">
