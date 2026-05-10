@@ -1,9 +1,10 @@
 import { auth } from '../firebase'
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 
 const BASE_URL = 'http://localhost:8080/api/user-anime'
 
 export const api = {
-  async getHeaders() {
+  async getHeaders(): Promise<HeadersInit> {
     if (auth.currentUser) {
       const token = await auth.currentUser.getIdToken()
       return {

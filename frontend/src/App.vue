@@ -7,7 +7,7 @@ import StatsView from './components/StatsView.vue'
 import AuthModal from './components/AuthModal.vue'
 import LandingView from './components/LandingView.vue'
 import { auth } from './firebase'
-import { onAuthStateChanged, signOut, User } from 'firebase/auth'
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 
 // Gestión del Modo Oscuro (Dark Mode)
 const darkMode = ref(localStorage.getItem('darkMode') !== 'false')

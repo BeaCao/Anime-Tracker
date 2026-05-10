@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { api } from '../services/api'
-import { auth } from '../firebase'
 
 const props = defineProps<{ anime: any }>()
 const emit = defineEmits(['close', 'saved', 'select-rec'])
@@ -139,7 +138,6 @@ const getConvertedTimes = computed(() => {
   if (!props.anime?.broadcast?.time || !props.anime?.broadcast?.day) return null
 
   const days = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays']
-  const daysEs = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados']
   
   const [hours, minutes] = props.anime.broadcast.time.split(':').map(Number)
   const dayIndex = days.indexOf(props.anime.broadcast.day)

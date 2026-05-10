@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../services/api'
-import { auth } from '../firebase'
 
 const emit = defineEmits(['open-anime'])
 
@@ -128,8 +127,15 @@ const stats = computed(() => ({
     : '–',
 }))
 
-const exportCsv = () => {
-  window.open(`${API}/export/csv`, '_blank')
+const exportCsv = async () => {
+  const headers = await api.getHeaders()
+  const res = await fetch(`http://localhost:8080/api/user-anime/export/csv`, { headers })
+  const blob = await res.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'mi_lista_anime.csv'
+  a.click()
 }
 
 const openAnime = async (malId: number) => {
