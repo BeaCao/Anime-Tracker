@@ -201,16 +201,21 @@ onMounted(() => {
         <div class="grain"></div>
       </div>
 
-      <!-- Barra de navegación superior (Glassmorphism) -->
-      <header class="sticky top-0 z-40 px-4 py-3">
-        <nav class="glass-nav max-w-7xl mx-auto flex items-center justify-between gap-4 px-5 py-3 rounded-2xl flex-wrap">
+      <!-- Barra de navegación superior (Premium Floating) -->
+      <header class="fixed top-0 inset-x-0 z-40 px-4 py-6 pointer-events-none">
+        <nav class="glass-nav max-w-5xl mx-auto flex items-center justify-between gap-4 px-6 py-2.5 rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
+          
           <!-- Logotipo AniKiroku -->
           <button
             @click="goTo('explore')"
-            class="logo-btn flex items-center gap-2 text-xl font-black tracking-tight select-none"
+            class="logo-btn flex items-center gap-2.5 group transition-transform active:scale-95"
           >
-            <span class="logo-icon text-2xl">🎌</span>
-            <span class="logo-text">AniKiroku</span>
+            <div class="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
+              <span class="text-xl">🎌</span>
+            </div>
+            <span class="logo-text text-xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
+              AniKiroku
+            </span>
           </button>
 
           <!-- Enlaces de navegación principal -->
@@ -476,17 +481,21 @@ onMounted(() => {
 /* Estilos de la Barra de Navegación Superior */
 /* Navegación: Variantes para Modo Claro */
 .glass-nav {
-  background: rgba(240, 244, 255, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 /* Navegación: Variantes para Modo Oscuro */
 .dark .glass-nav {
-  background: rgba(6, 8, 16, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  background: rgba(15, 18, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .logo-btn {
@@ -506,33 +515,37 @@ onMounted(() => {
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nav-idle {
   background: transparent;
-  color: rgba(0,0,0,0.45);
+  color: rgba(0,0,0,0.5);
 }
-.dark .nav-idle { color: rgba(255,255,255,0.45); }
+.dark .nav-idle { color: rgba(255,255,255,0.5); }
 .nav-idle:hover {
-  background: rgba(0,0,0,0.06);
-  color: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.05);
+  color: #1a1a2e;
+  transform: translateY(-1px);
 }
 .dark .nav-idle:hover {
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.08);
+  color: white;
 }
-.nav-active { color: white; }
-.nav-blue   { background: linear-gradient(135deg, #2563eb, #4f46e5); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
-.nav-pink   { background: linear-gradient(135deg, #db2777, #ec4899); box-shadow: 0 4px 14px rgba(219,39,119,0.4); }
-.nav-purple { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 4px 14px rgba(124,58,237,0.4); }
-.nav-emerald{ background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 14px rgba(5,150,105,0.4); }
+.nav-active { 
+  color: white; 
+  transform: translateY(-1px) scale(1.05);
+}
+.nav-blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 20px -6px rgba(37,99,235,0.5); }
+.nav-pink   { background: linear-gradient(135deg, #ec4899, #db2777); box-shadow: 0 8px 20px -6px rgba(219,39,119,0.5); }
+.nav-purple { background: linear-gradient(135deg, #a855f7, #7c3aed); box-shadow: 0 8px 20px -6px rgba(124,58,237,0.5); }
+.nav-emerald{ background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 20px -6px rgba(5,150,105,0.5); }
 
 .icon-btn {
   width: 34px; height: 34px;
