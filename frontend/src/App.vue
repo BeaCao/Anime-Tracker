@@ -278,7 +278,7 @@ onMounted(() => {
       </header>
 
       <!-- Contenido Principal Dinámico -->
-      <div class="relative z-10 max-w-7xl mx-auto px-4 pb-12">
+      <div class="relative z-10 max-w-7xl mx-auto px-4 pt-32 pb-12">
 
         <!-- VISTA: EXPLORADOR DE ANIMES -->
         <main v-if="activeView === 'explore'">
