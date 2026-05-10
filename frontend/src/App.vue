@@ -202,24 +202,24 @@ onMounted(() => {
       </div>
 
       <!-- Barra de navegación superior (Premium Floating) -->
-      <header class="fixed top-0 inset-x-0 z-40 px-4 py-6 pointer-events-none">
-        <nav class="glass-nav max-w-5xl mx-auto flex items-center justify-between gap-4 px-6 py-2.5 rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
+      <header class="fixed top-0 inset-x-0 z-40 px-4 py-8 pointer-events-none">
+        <nav class="glass-nav max-w-6xl mx-auto flex items-center justify-between gap-8 px-10 py-3 rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
           
           <!-- Logotipo AniKiroku -->
           <button
             @click="goTo('explore')"
-            class="logo-btn flex items-center gap-2.5 group transition-transform active:scale-95"
+            class="logo-btn flex items-center gap-3.5 group transition-transform active:scale-95"
           >
-            <div class="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
-              <span class="text-xl">🎌</span>
+            <div class="p-2.5 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
+              <span class="text-2xl">🎌</span>
             </div>
-            <span class="logo-text text-xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
+            <span class="logo-text text-2xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
               AniKiroku
             </span>
           </button>
 
           <!-- Enlaces de navegación principal -->
-          <div class="flex items-center gap-1 flex-wrap">
+          <div class="flex items-center gap-3">
             <button
               v-for="item in [
                 { view: 'explore', icon: '🔍', label: 'Explorar', color: 'blue' },
