@@ -23,8 +23,20 @@ const handleGoogleLogin = async () => {
     await signInWithPopup(auth, googleProvider)
     emit('close')
   } catch (e: any) {
-    error.value = 'Error al conectar con Google'
-    console.error(e)
+    console.error('Firebase Auth Error:', e)
+    
+    // Mapeo de errores comunes
+    if (e.code === 'auth/popup-blocked') {
+      error.value = 'El navegador bloqueó la ventana. Por favor, permite las ventanas emergentes para este sitio.'
+    } else if (e.code === 'auth/operation-not-allowed') {
+      error.value = 'El inicio con Google no está habilitado. Actívalo en la consola de Firebase (Authentication > Sign-in method).'
+    } else if (e.code === 'auth/popup-closed-by-user') {
+      error.value = 'Cerraste la ventana antes de completar el inicio de sesión.'
+    } else if (e.code === 'auth/unauthorized-domain') {
+      error.value = 'Este dominio no está autorizado en Firebase. Añade "' + window.location.hostname + '" en la consola de Firebase.'
+    } else {
+      error.value = `Error (${e.code}): ${e.message}`
+    }
   } finally {
     loading.value = false
   }
@@ -87,7 +99,7 @@ const resetPassword = async () => {
       <div class="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] p-8 md:p-10">
         
         <button @click="emit('close')" class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all text-gray-500 dark:text-gray-400">
-          <span class="text-xl">✕</span>
+          <i class="fa-solid fa-xmark text-lg"></i>
         </button>
 
         <div class="text-center mb-10">
@@ -106,10 +118,10 @@ const resetPassword = async () => {
         <button 
           @click="handleGoogleLogin"
           :disabled="loading"
-          class="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-gray-700 dark:text-white hover:border-purple-500/50 hover:bg-gray-50 dark:hover:bg-white/10 transition-all mb-6 group shadow-sm"
+          class="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-gray-700 dark:text-white hover:border-purple-500/50 hover:bg-gray-50 dark:hover:bg-white/10 transition-all mb-6 group shadow-sm active:scale-95 disabled:opacity-50"
         >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" class="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google">
-          Continuar con Google
+          <i class="fa-brands fa-google text-xl text-[#4285F4] group-hover:scale-110 transition-transform"></i>
+          {{ loading ? 'Conectando...' : 'Continuar con Google' }}
         </button>
 
         <div class="relative flex items-center justify-center mb-6">
@@ -121,7 +133,9 @@ const resetPassword = async () => {
         <!-- Form -->
         <div class="space-y-4">
           <div class="relative group">
-            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">✉️</span>
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+              <i class="fa-solid fa-envelope"></i>
+            </span>
             <input 
               v-model="email"
               type="email" 
@@ -130,7 +144,9 @@ const resetPassword = async () => {
             >
           </div>
           <div class="relative group">
-            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">🔒</span>
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+              <i class="fa-solid fa-lock"></i>
+            </span>
             <input 
               v-model="password"
               type="password" 

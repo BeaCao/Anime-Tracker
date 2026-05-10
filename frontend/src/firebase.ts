@@ -16,4 +16,5 @@ const app = initializeApp(firebaseConfig);
 // Exportamos las herramientas que usaremos
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const emailProvider = new EmailAuthProvider();
