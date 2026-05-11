@@ -128,14 +128,42 @@ const stats = computed(() => ({
 }))
 
 const exportCsv = async () => {
-  const headers = await api.getHeaders()
-  const res = await fetch(`http://localhost:8080/api/user-anime/export/csv`, { headers })
-  const blob = await res.blob()
+  const headers = ['Título', 'Título Inglés', 'Géneros', 'Episodios', 'Eps Vistos', 'Mi Puntuación', 'Estado', 'Puntuación Jikan', 'Rank', 'Estado Emisión', 'Notas']
+  const escapeCsv = (str: any) => {
+    if (str == null) return ''
+    const s = String(str)
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return `"${s.replace(/"/g, '""')}"`
+    }
+    return s
+  }
+  
+  const rows = myList.value.map(a => [
+    escapeCsv(a.title),
+    escapeCsv(a.titleEnglish),
+    escapeCsv(a.genres),
+    escapeCsv(a.episodes),
+    escapeCsv(a.episodesWatched),
+    escapeCsv(a.userScore),
+    escapeCsv(a.watchStatus),
+    escapeCsv(a.score),
+    escapeCsv(a.rank),
+    escapeCsv(a.airingStatus),
+    escapeCsv(a.notes)
+  ])
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(r => r.join(','))
+  ].join('\n')
+  
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = 'mi_lista_anime.csv'
   a.click()
+  window.URL.revokeObjectURL(url)
 }
 
 const openAnime = async (malId: number) => {
