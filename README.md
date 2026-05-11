@@ -5,7 +5,7 @@ https://beacao.github.io/Anime-Tracker/
 **AniKiroku** es una plataforma moderna y sofisticada para los amantes del anime. Permite explorar los títulos más populares, gestionar una lista personal de seguimiento y analizar estadísticas detalladas de visionado, todo envuelto en una interfaz de usuario premium con efectos de cristal y modo oscuro.
 
 ![AniKiroku Preview](https://img.shields.io/badge/UI-Premium-blueviolet)
-![Backend](https://img.shields.io/badge/Backend-Spring%20Boot-brightgreen)
+![Architecture](https://img.shields.io/badge/Architecture-Serverless-brightgreen)
 ![Frontend](https://img.shields.io/badge/Frontend-Vue%203-blue)
 ![Database](https://img.shields.io/badge/Database-Firebase%20Firestore-orange)
 
@@ -24,7 +24,7 @@ https://beacao.github.io/Anime-Tracker/
 - 🌙 **Modo Oscuro/Claro**: Interfaz adaptativa con un diseño minimalista y futurista.
 
 ### 🚀 Tecnologías
-- **Backend**: Java 25 + Spring Boot 4 + Firebase Admin SDK.
+- **Arquitectura**: Serverless (Sin servidor).
 - **Frontend**: Vue 3 (Composition API) + TypeScript + Tailwind CSS.
 - **Base de Datos y Auth**: Firebase Firestore & Authentication.
 
@@ -45,7 +45,7 @@ https://beacao.github.io/Anime-Tracker/
 - 🌙 **Dark/Light Mode**: Adaptive interface with a minimalist and futuristic design.
 
 ### 🚀 Tech Stack
-- **Backend**: Java 25 + Spring Boot 4 + Firebase Admin SDK.
+- **Architecture**: Serverless.
 - **Frontend**: Vue 3 + TypeScript + Tailwind CSS.
 - **Database & Auth**: Firebase Firestore & Firebase Authentication.
 
@@ -53,14 +53,15 @@ https://beacao.github.io/Anime-Tracker/
 
 ## 🛠️ Instalación / Setup
 
-### 1. Backend
-- Coloca tu `serviceAccountKey.json` en `backend/src/main/resources/`.
-- `./mvnw spring-boot:run`
+El proyecto está diseñado para funcionar de manera completamente autónoma sin necesidad de un backend propio.
 
-### 2. Frontend
-- Configura Firebase en `frontend/src/firebase.ts`.
-- `npm install`
-- `npm run dev`
+### Pasos
+1. Ve a la carpeta del proyecto y entra en `frontend`.
+2. Configura las credenciales de Firebase en `frontend/src/firebase.ts`.
+3. Ejecuta `npm install`.
+4. Ejecuta `npm run dev`.
+
+*Asegúrate de que tus reglas de seguridad en Firebase Firestore permiten lectura y escritura (Auth requerido).*
 
 ---
 Desarrollado con ❤️ por Beatriz Cao Rodríguez.

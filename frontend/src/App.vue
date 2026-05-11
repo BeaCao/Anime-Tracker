@@ -289,7 +289,7 @@ onMounted(() => {
             <div v-if="isDemoMode" class="hero-badge mb-4 bg-amber-500/10 border-amber-500/20 text-amber-500">
               <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               Modo Invitado: Los datos se guardan solo en este PC.
-              <button @click="showAuthModal = true" class="ml-2 underline font-black">Registrarse</button>
+              <button @click="showAuthModal = true" class="ml-2 font-black border-b-2 border-amber-500/30 hover:border-amber-400 hover:text-amber-400 transition-all cursor-pointer">Registrarse</button>
             </div>
             <div v-else class="hero-badge mb-4">
               <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
