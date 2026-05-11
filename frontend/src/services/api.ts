@@ -1,7 +1,7 @@
 import { auth } from '../firebase'
 
 
-const BASE_URL = 'http://localhost:8080/api/user-anime'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/user-anime'
 
 export const api = {
   async getHeaders(): Promise<HeadersInit> {
