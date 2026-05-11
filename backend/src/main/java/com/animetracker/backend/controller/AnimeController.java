@@ -27,7 +27,7 @@ import com.google.firebase.auth.FirebaseToken;
 
 @RestController
 @RequestMapping("/api/user-anime")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class AnimeController {
 
     private final FirestoreService firestoreService;
@@ -45,7 +45,7 @@ public class AnimeController {
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
             return decodedToken.getUid();
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.UNUNAUTHORIZED, "Token inválido");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido");
         }
     }
 

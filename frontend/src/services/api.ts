@@ -59,6 +59,7 @@ export const api = {
       headers: await this.getHeaders(),
       body: JSON.stringify(anime)
     })
+    if (!res.ok) throw new Error('Error saving anime')
     return res.json()
   },
 
