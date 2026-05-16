@@ -37,6 +37,13 @@ const selectedAnime = ref<any>(null)
 const sfwMode = ref(localStorage.getItem('sfwMode') !== 'false')
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
+// Paginación
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalItems = ref(0)
+const hasNextPage = ref(false)
+const resultsSection = ref<HTMLElement | null>(null)
+
 // Autenticación de Usuarios
 const currentUser = ref<User | null>(null)
 const showAuthModal = ref(false)
@@ -94,12 +101,32 @@ const toggleSfw = () => {
 }
 
 // Funciones Auxiliares para Consultas a la API (Jikan)
+const buildUrl = (page: number) => {
+  const query = searchQuery.value.trim()
+  const sfw = sfwMode.value ? '&sfw=true' : ''
+  if (!query && !selectedGenre.value && !selectedStatus.value) {
+    return `https://api.jikan.moe/v4/top/anime?limit=24&page=${page}${sfw}`
+  }
+  let url = `https://api.jikan.moe/v4/anime?limit=24&page=${page}${sfw}`
+  if (query) url += `&q=${encodeURIComponent(query)}`
+  if (selectedGenre.value) url += `&genres=${selectedGenre.value}`
+  if (selectedStatus.value) url += `&status=${selectedStatus.value}`
+  return url
+}
+
 const fetchAnimes = async (url: string) => {
   loading.value = true
   try {
     const response = await fetch(url)
     const data = await response.json()
     displayedAnimes.value = data.data || []
+    // Extraer info de paginación de la respuesta de Jikan
+    const pag = data.pagination
+    if (pag) {
+      totalPages.value = pag.last_visible_page ?? 1
+      totalItems.value = pag.items?.total ?? (data.data?.length ?? 0)
+      hasNextPage.value = pag.has_next_page ?? false
+    }
   } catch (error) {
     console.error('Error fetching anime:', error)
   } finally {
@@ -120,19 +147,34 @@ const fetchGenres = async () => {
 const handleSearch = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    const query = searchQuery.value.trim()
-    const sfw = sfwMode.value ? '&sfw=true' : ''
-    if (!query && !selectedGenre.value && !selectedStatus.value) {
-      fetchAnimes(`https://api.jikan.moe/v4/top/anime?limit=24${sfw}`)
-      return
-    }
-    let url = `https://api.jikan.moe/v4/anime?limit=24${sfw}`
-    if (query) url += `&q=${encodeURIComponent(query)}`
-    if (selectedGenre.value) url += `&genres=${selectedGenre.value}`
-    if (selectedStatus.value) url += `&status=${selectedStatus.value}`
-    fetchAnimes(url)
+    currentPage.value = 1
+    fetchAnimes(buildUrl(1))
   }, 500)
 }
+
+const goToPage = (page: number) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+  currentPage.value = page
+  fetchAnimes(buildUrl(page))
+  // Scroll suave al inicio de los resultados
+  resultsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// Páginas visibles (máx 7 botones con elipsis)
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = []
+  if (cur <= 4) {
+    pages.push(1, 2, 3, 4, 5, '...', total)
+  } else if (cur >= total - 3) {
+    pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, '...', cur - 1, cur, cur + 1, '...', total)
+  }
+  return pages
+})
 
 const fetchSeason = async () => {
   if (seasonLoaded.value) return
@@ -174,8 +216,7 @@ const openRecommendation = async (rec: any) => {
 
 onMounted(() => {
   fetchGenres()
-  const sfw = sfwMode.value ? '&sfw=true' : ''
-  fetchAnimes(`https://api.jikan.moe/v4/top/anime?limit=24${sfw}`)
+  fetchAnimes(buildUrl(1))
 })
 </script>
 
@@ -202,24 +243,27 @@ onMounted(() => {
       </div>
 
       <!-- Barra de navegación superior (Premium Floating) -->
-      <header class="fixed top-0 inset-x-0 z-40 px-2 sm:px-4 py-4 md:py-8 pointer-events-none">
-        <nav class="glass-nav max-w-6xl mx-auto flex items-center justify-between gap-2 md:gap-8 px-4 md:px-10 py-2.5 md:py-3 rounded-2xl md:rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
+      <header class="fixed top-0 inset-x-0 z-40 px-2 sm:px-4 py-2 md:py-8 pointer-events-none">
+        <nav class="glass-nav max-w-6xl mx-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 md:gap-8 px-3 md:px-10 py-2 md:py-3 rounded-2xl md:rounded-full pointer-events-auto shadow-2xl transition-all duration-300">
           
           <!-- Logotipo AniKiroku -->
           <button
             @click="goTo('explore')"
-            class="logo-btn flex items-center gap-2 md:gap-3.5 group transition-transform active:scale-95"
+            class="logo-btn flex items-center gap-2 md:gap-3.5 group transition-transform active:scale-95 flex-shrink-0"
           >
             <div class="p-1.5 md:p-2.5 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl md:rounded-2xl shadow-lg shadow-purple-500/20 group-hover:rotate-12 transition-transform">
               <span class="text-xl md:text-2xl">🎌</span>
             </div>
-            <span class="logo-text text-lg md:text-2xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent hidden sm:inline-block">
+            <span class="logo-text text-lg md:text-2xl font-black tracking-tight bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
               AniKiroku
             </span>
           </button>
 
-          <!-- Enlaces de navegación principal -->
-          <div class="flex items-center gap-1 md:gap-3">
+          <!-- Spacer para empujar los botones a la derecha en desktop -->
+          <div class="hidden md:flex flex-1"></div>
+
+          <!-- Fila de navegación: se convierte en segunda fila en móvil -->
+          <div class="flex items-center gap-1 flex-wrap justify-center w-full md:w-auto">
             <button
               v-for="item in [
                 { view: 'explore', icon: '🔍', label: 'Explorar', color: 'blue' },
@@ -234,12 +278,12 @@ onMounted(() => {
               ]"
               class="nav-btn"
             >
-              <span class="text-base md:text-lg">{{ item.icon }}</span>
-              <span class="hidden md:inline">{{ item.label }}</span>
+              <span class="text-base">{{ item.icon }}</span>
+              <span class="text-xs sm:text-sm md:hidden lg:inline">{{ item.label }}</span>
             </button>
 
             <!-- Divisor visual -->
-            <div class="w-px h-5 bg-black/10 dark:bg-white/10 mx-1 hidden sm:block"></div>
+            <div class="w-px h-5 bg-black/10 dark:bg-white/10 mx-0.5"></div>
 
             <!-- Interruptor de Modo Oscuro -->
             <button @click="toggleDark" class="icon-btn" :title="darkMode ? 'Modo claro' : 'Modo oscuro'">
@@ -250,18 +294,18 @@ onMounted(() => {
             <button
               @click="toggleSfw"
               :class="sfwMode ? 'sfw-on' : 'sfw-off'"
-              class="sfw-btn mr-2"
+              class="sfw-btn"
             >
               <span>{{ sfwMode ? '🔒' : '🔞' }}</span>
               <span class="text-xs font-semibold">{{ sfwMode ? 'Safe' : '18+' }}</span>
             </button>
 
             <!-- Sección de Usuario / Auth -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
               <template v-if="currentUser">
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl">
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-white/5 border border-white/10 rounded-xl">
                   <img v-if="currentUser.photoURL" :src="currentUser.photoURL" class="w-6 h-6 rounded-full border border-white/20" alt="avatar">
-                  <span v-else class="text-lg">👤</span>
+                  <span v-else class="text-base">👤</span>
                   <span class="text-xs font-bold hidden sm:inline">{{ currentUser.displayName || currentUser.email?.split('@')[0] }}</span>
                 </div>
                 <button @click="handleLogout" class="icon-btn" title="Cerrar sesión">
@@ -270,7 +314,7 @@ onMounted(() => {
               </template>
               <button v-else @click="showAuthModal = true" class="nav-btn nav-purple">
                 <span>🔑</span>
-                <span>Entrar</span>
+                <span class="text-xs sm:text-sm">Entrar</span>
               </button>
             </div>
           </div>
@@ -278,7 +322,7 @@ onMounted(() => {
       </header>
 
       <!-- Contenido Principal Dinámico -->
-      <div class="relative z-10 max-w-7xl mx-auto px-4 pt-24 md:pt-32 pb-12">
+      <div class="relative z-10 max-w-7xl mx-auto px-4 pt-36 sm:pt-28 md:pt-32 pb-12">
 
         <!-- VISTA: EXPLORADOR DE ANIMES -->
         <main v-if="activeView === 'explore'">
@@ -334,14 +378,16 @@ onMounted(() => {
           </section>
 
           <!-- Sección de Resultados del Catálogo -->
-          <section>
+          <section ref="resultsSection">
             <div class="flex items-center gap-3 mb-6">
               <div class="section-dot"></div>
               <h2 class="section-title text-lg font-bold">
                 {{ searchQuery || selectedGenre || selectedStatus ? '🔍 Resultados de búsqueda' : '🔥 Top Animes' }}
               </h2>
               <div class="flex-1 h-px section-divider"></div>
-              <span v-if="!loading" class="text-xs section-count">{{ displayedAnimes.length }} animes</span>
+              <span v-if="!loading" class="text-xs section-count">
+                {{ totalItems > 0 ? `${totalItems.toLocaleString()} animes` : `${displayedAnimes.length} animes` }}
+              </span>
             </div>
 
             <!-- Indicador de Carga (Skeletons) -->
@@ -366,6 +412,38 @@ onMounted(() => {
                 :style="{ animationDelay: `${i * 40}ms` }"
                 class="card-appear"
               />
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div v-if="!loading && totalPages > 1" class="pagination-wrap mt-10 flex flex-wrap items-center justify-center gap-2">
+              <!-- Botón Anterior -->
+              <button
+                @click="goToPage(currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="page-btn page-nav"
+                title="Página anterior"
+              >◀</button>
+
+              <!-- Números de página -->
+              <template v-for="p in visiblePages" :key="typeof p === 'number' ? p : `ellipsis-${p}`">
+                <span v-if="p === '...'" class="page-ellipsis">…</span>
+                <button
+                  v-else
+                  @click="goToPage(p as number)"
+                  :class="p === currentPage ? 'page-btn page-active' : 'page-btn page-idle'"
+                >{{ p }}</button>
+              </template>
+
+              <!-- Botón Siguiente -->
+              <button
+                @click="goToPage(currentPage + 1)"
+                :disabled="!hasNextPage && currentPage === totalPages"
+                class="page-btn page-nav"
+                title="Página siguiente"
+              >▶</button>
+
+              <!-- Info de página -->
+              <span class="page-info">Pág. {{ currentPage }} / {{ totalPages }}</span>
             </div>
           </section>
         </main>
@@ -740,4 +818,85 @@ onMounted(() => {
 
 .section-count { color: rgba(255,255,255,0.3); }
 .light .section-count { color: #94a3b8; }
-</style>
+
+/* Controles de Paginación */
+.pagination-wrap {
+  padding: 0.5rem 0 1.5rem;
+}
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.6rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-idle {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.light .page-idle {
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.55);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.page-idle:hover {
+  background: rgba(255,255,255,0.12);
+  color: white;
+  transform: translateY(-1px);
+}
+.light .page-idle:hover {
+  background: rgba(0,0,0,0.1);
+  color: #1a1a2e;
+}
+.page-active {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: white;
+  box-shadow: 0 6px 18px -4px rgba(124,58,237,0.5);
+  transform: translateY(-1px) scale(1.05);
+}
+.page-nav {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.7rem;
+}
+.light .page-nav {
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.4);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.page-nav:hover:not(:disabled) {
+  background: rgba(255,255,255,0.12);
+  color: white;
+}
+.light .page-nav:hover:not(:disabled) {
+  background: rgba(0,0,0,0.1);
+  color: #1a1a2e;
+}
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+.page-ellipsis {
+  color: rgba(255,255,255,0.3);
+  font-size: 0.9rem;
+  padding: 0 0.25rem;
+  user-select: none;
+}
+.light .page-ellipsis { color: rgba(0,0,0,0.3); }
+.page-info {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+.light .page-info { color: rgba(0,0,0,0.35); }</style>
