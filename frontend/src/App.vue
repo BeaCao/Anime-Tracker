@@ -131,12 +131,21 @@ watch(sfwMode, (isSfw) => {
 // Estado y Variables de la Vista de Temporada Actual
 const seasonAnimes = ref<any[]>([])
 const seasonLoading = ref(false)
-const seasonLoaded = ref(false)
+const seasonCurrentPage = ref(1)
+const seasonTotalPages = ref(1)
+const seasonTotalItems = ref(0)
+const seasonHasNextPage = ref(false)
+const seasonSection = ref<HTMLElement | null>(null)
 
 const toggleSfw = () => {
   sfwMode.value = !sfwMode.value
   localStorage.setItem('sfwMode', String(sfwMode.value))
   handleSearch()
+  // Recargar temporada si está activa
+  if (activeView.value === 'season') {
+    seasonCurrentPage.value = 1
+    fetchSeason(1)
+  }
 }
 
 // Funciones Auxiliares para Consultas a la API (Jikan)
@@ -219,29 +228,25 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const fetchSeason = async () => {
-  if (seasonLoaded.value) return
+const fetchSeason = async (page: number = 1) => {
   seasonLoading.value = true
   try {
+    const sfw = sfwMode.value ? '&sfw=true' : ''
+    const res = await fetch(`https://api.jikan.moe/v4/seasons/now?limit=24&page=${page}${sfw}`)
+    if (!res.ok) throw new Error('API error')
+    const data = await res.json()
+    // Deduplicar por mal_id
+    const raw: any[] = data.data || []
     const seen = new Map<number, any>()
-    let page = 1
-    let hasNext = true
-
-    // Jikan limita a 25 por página — paginamos hasta traer todos
-    while (hasNext) {
-      const res = await fetch(`https://api.jikan.moe/v4/seasons/now?limit=25&page=${page}`)
-      if (!res.ok) break
-      const data = await res.json()
-      const items: any[] = data.data || []
-      items.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
-      hasNext = data.pagination?.has_next_page === true
-      page++
-      // Pequeña pausa entre peticiones para respetar el rate-limit de Jikan (3 req/s)
-      if (hasNext) await new Promise(r => setTimeout(r, 350))
-    }
-
+    raw.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
     seasonAnimes.value = Array.from(seen.values())
-    seasonLoaded.value = true
+    // Paginación
+    const pag = data.pagination
+    if (pag) {
+      seasonTotalPages.value = pag.last_visible_page ?? 1
+      seasonTotalItems.value = pag.items?.total ?? raw.length
+      seasonHasNextPage.value = pag.has_next_page ?? false
+    }
   } catch (e) {
     console.error('Error fetching season:', e)
   } finally {
@@ -249,14 +254,35 @@ const fetchSeason = async () => {
   }
 }
 
+const goToSeasonPage = (page: number) => {
+  if (page < 1 || page > seasonTotalPages.value || page === seasonCurrentPage.value) return
+  seasonCurrentPage.value = page
+  fetchSeason(page)
+  seasonSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// Páginas visibles para temporada (máx 7 con elipsis)
+const visibleSeasonPages = computed(() => {
+  const total = seasonTotalPages.value
+  const cur = seasonCurrentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = []
+  if (cur <= 4) {
+    pages.push(1, 2, 3, 4, 5, '...', total)
+  } else if (cur >= total - 3) {
+    pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, '...', cur - 1, cur, cur + 1, '...', total)
+  }
+  return pages
+})
+
 // Funciones de Navegación y Gestión de Eventos del Modal
 const goTo = (view: typeof activeView.value) => {
   activeView.value = view
   if (view === 'season') {
-    // Resetear para que siempre use el nuevo código paginado
-    seasonLoaded.value = false
-    seasonAnimes.value = []
-    fetchSeason()
+    seasonCurrentPage.value = 1
+    fetchSeason(1)
   }
 }
 
@@ -512,27 +538,27 @@ onMounted(() => {
         </main>
 
         <!-- VISTA: ANIMES DE LA TEMPORADA ACTUAL -->
-        <main v-else-if="activeView === 'season'" class="pt-8">
+        <main v-else-if="activeView === 'season'" class="pt-8" ref="seasonSection">
           <div class="flex items-center gap-3 mb-8">
             <div class="section-dot pink"></div>
             <h2 class="text-2xl font-bold text-white">🌸 Temporada Actual</h2>
             <div class="flex-1 h-px section-divider"></div>
             <span v-if="!seasonLoading && seasonAnimes.length > 0" class="text-xs section-count">
-              {{ seasonAnimes.length }} animes
+              {{ seasonTotalItems }} animes{{ sfwMode ? ' (SFW)' : '' }}
             </span>
           </div>
-          <!-- Carga: esqueletos + mensaje de progreso -->
-          <div v-if="seasonLoading">
-            <p class="text-center text-sm text-white/40 mb-6 animate-pulse">
-              ⏳ Cargando todos los animes de la temporada...
-            </p>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
-              <div v-for="i in 24" :key="i" class="skeleton-card"></div>
-            </div>
+
+          <!-- Esqueletos de carga -->
+          <div v-if="seasonLoading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+            <div v-for="i in 24" :key="i" class="skeleton-card"></div>
           </div>
-          <div v-else-if="seasonAnimes.length === 0 && seasonLoaded" class="text-center text-white/40 py-20 text-lg">
+
+          <!-- Sin resultados -->
+          <div v-else-if="seasonAnimes.length === 0" class="text-center text-white/40 py-20 text-lg">
             No se encontraron animes de temporada.
           </div>
+
+          <!-- Grid de animes -->
           <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
             <AnimeCard
               v-for="(anime, i) in seasonAnimes"
@@ -543,7 +569,40 @@ onMounted(() => {
               class="card-appear"
             />
           </div>
+
+          <!-- Paginación de temporada -->
+          <div v-if="!seasonLoading && seasonTotalPages > 1" class="pagination-bar mt-8">
+            <!-- Botón Anterior -->
+            <button
+              @click="goToSeasonPage(seasonCurrentPage - 1)"
+              :disabled="seasonCurrentPage === 1"
+              class="page-btn page-nav"
+              title="Página anterior"
+            >◀</button>
+
+            <!-- Números de página -->
+            <template v-for="p in visibleSeasonPages" :key="p">
+              <span v-if="p === '...'" class="page-ellipsis">…</span>
+              <button
+                v-else
+                @click="goToSeasonPage(p as number)"
+                :class="['page-btn', { 'page-active': p === seasonCurrentPage }]"
+              >{{ p }}</button>
+            </template>
+
+            <!-- Botón Siguiente -->
+            <button
+              @click="goToSeasonPage(seasonCurrentPage + 1)"
+              :disabled="!seasonHasNextPage && seasonCurrentPage === seasonTotalPages"
+              class="page-btn page-nav"
+              title="Página siguiente"
+            >▶</button>
+
+            <!-- Info de página -->
+            <span class="page-info">Pág. {{ seasonCurrentPage }} / {{ seasonTotalPages }}</span>
+          </div>
         </main>
+
 
         <!-- VISTA: GESTIÓN DE MI LISTA PERSONAL -->
         <main v-else-if="activeView === 'mylist'" class="pt-8">
