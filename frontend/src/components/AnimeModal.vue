@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { api } from '../services/api'
+import { api, customListsApi } from '../services/api'
 
 const props = defineProps<{ anime: any }>()
 const emit = defineEmits(['close', 'saved', 'select-rec'])
@@ -15,6 +15,10 @@ const alreadyInList = ref(false)
 const listEntryId = ref<number | null>(null)
 const savedFeedback = ref(false)
 const synopsisExpanded = ref(false)
+
+// Listas personalizadas
+const customLists = ref<any[]>([])
+const selectedListIds = ref<Set<string>>(new Set())
 
 // Auto-marcar según el estado de emisión al alcanzar el último episodio conocido
 watch(episodesWatched, (val) => {
@@ -82,6 +86,13 @@ const checkInList = async () => {
         notes.value = entry.notes || ''
       }
     }
+    // Cargar listas personalizadas y marcar cuáles ya contienen este anime
+    customLists.value = await customListsApi.getAll()
+    selectedListIds.value = new Set(
+      customLists.value
+        .filter(l => l.animeIds?.includes(props.anime.mal_id))
+        .map(l => l.listId)
+    )
   } catch (_) { }
 }
 
@@ -106,6 +117,20 @@ const handleSave = async () => {
       rank: props.anime.rank || null,
     }
     await api.save(body)
+
+    // Sincronizar listas personalizadas
+    for (const cl of customLists.value) {
+      const inList = selectedListIds.value.has(cl.listId)
+      const wasInList = cl.animeIds?.includes(props.anime.mal_id)
+      if (inList && !wasInList) {
+        await customListsApi.addAnime(cl.listId, props.anime.mal_id)
+        cl.animeIds = [...(cl.animeIds || []), props.anime.mal_id]
+      } else if (!inList && wasInList) {
+        await customListsApi.removeAnime(cl.listId, props.anime.mal_id)
+        cl.animeIds = cl.animeIds.filter((id: number) => id !== props.anime.mal_id)
+      }
+    }
+
     alreadyInList.value = true
     savedFeedback.value = true
     setTimeout(() => { savedFeedback.value = false }, 2000)
@@ -352,6 +377,25 @@ onMounted(async () => {
                      outline-none focus:border-blue-500 resize-none placeholder-gray-600 transition-colors"></textarea>
           </div>
 
+          <!-- Listas personalizadas (si existen) -->
+          <div v-if="customLists.length > 0" class="mb-4">
+            <label class="text-xs text-gray-500 mb-2 block font-medium">📁 Añadir a mis listas</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="cl in customLists" :key="cl.listId"
+                @click="selectedListIds.has(cl.listId)
+                  ? selectedListIds.delete(cl.listId)
+                  : selectedListIds.add(cl.listId); selectedListIds = new Set(selectedListIds)"
+                :style="selectedListIds.has(cl.listId)
+                  ? `background:${cl.color};color:white;border-color:${cl.color}`
+                  : `background:${cl.color}18;color:${cl.color};border-color:${cl.color}44`"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all hover:opacity-90">
+                <span>{{ cl.emoji }} {{ cl.name }}</span>
+                <span v-if="selectedListIds.has(cl.listId)" class="text-white/80">✓</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Acciones (Guardar/Eliminar) -->
           <div class="flex gap-2">
             <button @click="handleSave" :disabled="saving"
@@ -373,6 +417,7 @@ onMounted(async () => {
             </button>
           </div>
         </div>
+
 
         <!-- Recomendaciones relacionadas -->
         <div v-if="recsLoading || recommendations.length > 0">
