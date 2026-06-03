@@ -64,8 +64,7 @@ const toggleAnimeInList = async (listId: string, malId: number) => {
   openListMenuId.value = null
 }
 
-const animeCustomLists = (malId: number) =>
-  customLists.value.filter(l => l.animeIds.includes(malId))
+
 
 const TABS = [
   { key: 'Todos', label: 'Todos', emoji: '📋' },
