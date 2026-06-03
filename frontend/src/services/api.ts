@@ -1,11 +1,51 @@
 import { auth, db } from '../firebase'
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where } from 'firebase/firestore'
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, increment, setDoc as firestoreSetDoc, updateDoc, getCountFromServer } from 'firebase/firestore'
 
 // Guard: lanza un error claro si el usuario no está autenticado
 const requireAuth = () => {
   const user = auth.currentUser
   if (!user) throw new Error('No autenticado. Por favor, inicia sesión.')
   return user
+}
+
+// ── Estadísticas públicas globales ─────────────────────────────────────────
+const STATS_DOC = doc(db, 'publicStats', 'global')
+
+// Lee las estadísticas globales (no requiere autenticación)
+export const getPublicStats = async (): Promise<{ userCount: number; animeCount: number }> => {
+  try {
+    const snap = await getDoc(STATS_DOC)
+    if (snap.exists()) return snap.data() as any
+    return { userCount: 0, animeCount: 0 }
+  } catch {
+    return { userCount: 0, animeCount: 0 }
+  }
+}
+
+// Actualiza los contadores globales (solo los campos indicados)
+const updateStats = async (delta: { userCount?: number; animeCount?: number }) => {
+  try {
+    const updates: any = {}
+    if (delta.userCount   !== undefined) updates.userCount   = increment(delta.userCount)
+    if (delta.animeCount  !== undefined) updates.animeCount  = increment(delta.animeCount)
+    // setDoc con merge:true crea el doc si no existe
+    await setDoc(STATS_DOC, updates, { merge: true })
+  } catch (e) {
+    // No crítico: no bloqueamos la operación principal si falla el contador
+    console.warn('Stats update failed:', e)
+  }
+}
+
+// Registra un usuario nuevo (solo si es la primera vez que guarda datos)
+export const registerNewUser = async () => {
+  const user = auth.currentUser
+  if (!user) return
+  const userDoc = doc(db, 'registeredUsers', user.uid)
+  const snap = await getDoc(userDoc)
+  if (!snap.exists()) {
+    await setDoc(userDoc, { uid: user.uid, createdAt: Date.now() })
+    await updateStats({ userCount: 1 })
+  }
 }
 
 export const api = {
@@ -67,9 +107,15 @@ export const api = {
     const user = requireAuth()
     try {
       const docId = `${user.uid}_${anime.malId}`
+      const isNew = !(await getDoc(doc(db, 'user_animes', docId))).exists()
       anime.userId = user.uid
       if (!anime.id) anime.id = Date.now()
       await setDoc(doc(db, 'user_animes', docId), anime)
+      // Registrar usuario nuevo + incrementar contador de animes si es entrada nueva
+      if (isNew) {
+        await registerNewUser()
+        await updateStats({ animeCount: 1 })
+      }
       return anime
     } catch (e: any) {
       if (e.code === 'permission-denied') throw new Error('Sin permiso para guardar datos.')
@@ -88,6 +134,8 @@ export const api = {
     try {
       const docId = `${user.uid}_${malId}`
       await deleteDoc(doc(db, 'user_animes', docId))
+      // Decrementar contador global (mínimo 0)
+      await updateStats({ animeCount: -1 })
     } catch (e: any) {
       if (e.code === 'permission-denied') throw new Error('Sin permiso para eliminar datos.')
       throw e
