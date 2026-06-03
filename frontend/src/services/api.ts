@@ -54,6 +54,43 @@ export const registerNewUser = async () => {
   }
 }
 
+// Sincroniza el contador global con datos reales de un usuario existente
+// Se llama una vez al hacer login para recuperar usuarios/animes previos al sistema de stats
+export const syncStatsFromRealData = async () => {
+  const user = auth.currentUser
+  if (!user) return
+  try {
+    // 1. Registrar el usuario si no existe aún en registeredUsers
+    const userDoc = doc(db, 'registeredUsers', user.uid)
+    const userSnap = await getDoc(userDoc)
+    if (!userSnap.exists()) {
+      await setDoc(userDoc, { uid: user.uid, createdAt: Date.now(), synced: true })
+      await updateStats({ userCount: 1 })
+    }
+
+    // 2. Contar los animes que este usuario tiene guardados
+    const q = query(collection(db, 'user_animes'), where('userId', '==', user.uid))
+    const snap = await getDocs(q)
+    const realCount = snap.size
+
+    // 3. Comparar con lo que se registró en syncedAnimeCount para no doble-contar
+    const syncKey = `synced_anime_count_${user.uid}`
+    const prevSynced = Number(localStorage.getItem(syncKey) || '0')
+    const diff = realCount - prevSynced
+
+    if (diff > 0) {
+      await updateStats({ animeCount: diff })
+      localStorage.setItem(syncKey, String(realCount))
+    } else if (prevSynced === 0 && realCount > 0) {
+      // Primera vez sync para este usuario
+      await updateStats({ animeCount: realCount })
+      localStorage.setItem(syncKey, String(realCount))
+    }
+  } catch (e) {
+    console.warn('Sync stats failed:', e)
+  }
+}
+
 export const api = {
   isDemo() {
     return !auth.currentUser

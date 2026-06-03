@@ -8,7 +8,7 @@ import AuthModal from './components/AuthModal.vue'
 import LandingView from './components/LandingView.vue'
 import { auth } from './firebase'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
-import { getPublicStats } from './services/api'
+import { getPublicStats, syncStatsFromRealData } from './services/api'
 
 // Gestión del Modo Oscuro (Dark Mode)
 const darkMode = ref(localStorage.getItem('darkMode') !== 'false')
@@ -53,11 +53,18 @@ const isDemoMode = ref(localStorage.getItem('isDemoMode') === 'true')
 const showLanding = computed(() => !currentUser.value && !isDemoMode.value)
 
 onMounted(() => {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser.value = user
     if (user) {
       isDemoMode.value = false
       localStorage.setItem('isDemoMode', 'false')
+      // Sincronizar contadores con datos reales del usuario (recupera datos previos al sistema de stats)
+      syncStatsFromRealData().then(async () => {
+        // Refrescar los contadores en pantalla tras la sync
+        const stats = await getPublicStats()
+        communityUsers.value  = stats.userCount
+        communityAnimes.value = stats.animeCount
+      })
     }
     // Si el usuario cambia, refrescamos la lista
     if (activeView.value === 'mylist') {
