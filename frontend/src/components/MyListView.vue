@@ -38,10 +38,14 @@ const createList = async () => {
   if (!name) return
   const listId = `list_${Date.now()}`
   const list = { listId, name, emoji: newListEmoji.value, color: newListColor.value, animeIds: [] }
-  await customListsApi.save(list)
-  customLists.value.push(list)
-  newListName.value = ''
-  creatingList.value = false
+  try {
+    await customListsApi.save(list)
+    customLists.value.push(list)
+    newListName.value = ''
+    creatingList.value = false
+  } catch (e: any) {
+    alert('Error al crear la lista: ' + (e?.message || 'Comprueba que has aplicado las reglas de Firestore.'))
+  }
 }
 
 const deleteCustomList = async (listId: string) => {
@@ -305,58 +309,76 @@ defineExpose({ fetchList })
       </button>
     </div>
 
-    <!-- Listas personalizadas -->
-    <div class="mb-5">
-      <div class="flex items-center gap-1 mb-2 flex-wrap">
-        <!-- Tabs de listas personalizadas -->
+    <!-- ── Mis Listas Personalizadas ─────────────────────────────────── -->
+    <div class="mb-5 rounded-2xl border p-4" style="background:var(--ml-bg-2);border-color:var(--ml-border);">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-bold" style="color:var(--ml-text)">📁 Mis Listas</span>
+        <button v-if="!creatingList" @click="creatingList = true; $nextTick(() => ($el.querySelector('.new-list-input') as HTMLElement)?.focus())"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:scale-105"
+          style="background:linear-gradient(135deg,#6d28d9,#2563eb)">
+          ＋ Crear lista
+        </button>
+      </div>
+
+      <!-- Formulario de creación -->
+      <div v-if="creatingList" class="mb-3 p-3 rounded-xl border" style="background:var(--ml-bg);border-color:var(--ml-border-2);">
+        <p class="text-xs font-semibold mb-2" style="color:#64748b">Nueva lista personalizada</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <!-- Emoji -->
+          <select v-model="newListEmoji" class="rounded-lg px-2 py-2 text-base outline-none cursor-pointer shrink-0"
+            style="background:var(--ml-bg-2);color:var(--ml-text);border:1px solid var(--ml-border);">
+            <option v-for="e in ['📁','⭐','🔥','💎','😍','🎯','🎮','🌸','⚔️','🧠','🌊','👑']" :key="e" :value="e">{{ e }}</option>
+          </select>
+          <!-- Nombre -->
+          <input v-model="newListName"
+            @keyup.enter="createList" @keyup.esc="creatingList = false"
+            placeholder="Escribe el nombre de tu lista..."
+            class="new-list-input flex-1 min-w-[180px] rounded-lg px-3 py-2 text-sm outline-none"
+            style="background:var(--ml-bg-2);color:var(--ml-text);border:1px solid var(--ml-border-2);" />
+        </div>
+        <!-- Colores -->
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-xs" style="color:#64748b">Color:</span>
+          <div class="flex gap-1.5">
+            <button v-for="c in LIST_COLORS" :key="c" @click="newListColor = c"
+              :style="`background:${c};width:20px;height:20px;border-radius:50%;box-shadow:${newListColor===c?`0 0 0 2px white,0 0 0 4px ${c}`:''}`"
+              class="transition-all hover:scale-110 shrink-0"></button>
+          </div>
+          <div class="ml-auto flex gap-2">
+            <button @click="createList"
+              class="px-4 py-1.5 rounded-xl text-xs font-bold text-white"
+              :style="`background:${newListColor}`">✓ Crear</button>
+            <button @click="creatingList = false"
+              class="px-3 py-1.5 rounded-xl text-xs font-semibold"
+              style="background:var(--ml-bg-2);color:#64748b;">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de listas creadas -->
+      <div v-if="customLists.length === 0 && !creatingList" class="text-center py-3 text-xs" style="color:#64748b">
+        Aún no tienes listas. ¡Crea una para organizar tus animes!
+      </div>
+      <div class="flex gap-2 flex-wrap">
         <div v-for="cl in customLists" :key="cl.listId" class="relative group/cl">
           <button
             @click="activeCustomListId = cl.listId; activeTab = 'Todos'"
             :style="activeCustomListId === cl.listId
-              ? `background:${cl.color}22;color:${cl.color};border-color:${cl.color}55`
-              : 'background:var(--ml-bg-2);color:#64748b;border-color:var(--ml-border)'"
-            class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap border shrink-0">
-            <span>{{ cl.emoji }} {{ cl.name }}</span>
-            <span class="text-xs px-1.5 rounded-full" :style="`background:${cl.color}33`">{{ cl.animeIds.length }}</span>
+              ? `background:${cl.color};color:white;border-color:${cl.color}`
+              : `background:${cl.color}18;color:${cl.color};border-color:${cl.color}44`"
+            class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold whitespace-nowrap border transition-all">
+            {{ cl.emoji }} {{ cl.name }}
+            <span class="text-xs opacity-70 ml-1">{{ cl.animeIds.length }}</span>
           </button>
-          <!-- Botón borrar lista (hover) -->
           <button @click.stop="deleteCustomList(cl.listId)"
-            class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-xs items-center justify-center hidden group-hover/cl:flex"
+            class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs items-center justify-center hidden group-hover/cl:flex shadow-md"
             title="Eliminar lista">✕</button>
         </div>
-
-        <!-- Botón crear nueva lista -->
-        <button v-if="!creatingList" @click="creatingList = true"
-          class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border border-dashed transition-colors"
-          style="background:transparent;color:#64748b;border-color:var(--ml-border);">
-          ＋ Nueva lista
-        </button>
-      </div>
-
-      <!-- Formulario inline de creación -->
-      <div v-if="creatingList" class="flex flex-wrap items-center gap-2 p-3 rounded-xl border"
-        style="background:var(--ml-bg-2);border-color:var(--ml-border);">
-        <!-- Selector de emoji -->
-        <select v-model="newListEmoji" class="rounded-lg px-2 py-1 text-sm outline-none cursor-pointer"
-          style="background:var(--ml-bg);color:var(--ml-text);border:1px solid var(--ml-border);">
-          <option v-for="e in ['📁','⭐','🔥','💎','😍','🎯','🎮','🌸','⚔️','🧠','🌊','👑']" :key="e" :value="e">{{ e }}</option>
-        </select>
-        <!-- Nombre de la lista -->
-        <input v-model="newListName" @keyup.enter="createList" @keyup.esc="creatingList = false"
-          placeholder="Nombre de la lista..." autofocus
-          class="flex-1 min-w-[160px] rounded-lg px-3 py-1.5 text-sm outline-none"
-          style="background:var(--ml-bg);color:var(--ml-text);border:1px solid var(--ml-border);" />
-        <!-- Selector de color -->
-        <div class="flex gap-1">
-          <button v-for="c in LIST_COLORS" :key="c" @click="newListColor = c"
-            :style="`background:${c};width:18px;height:18px;border-radius:50%;outline:${newListColor===c?`2px solid ${c}`:''};outline-offset:2px`"
-            class="transition-transform hover:scale-110 shrink-0"></button>
-        </div>
-        <!-- Acciones -->
-        <button @click="createList" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90"
-          :style="`background:${newListColor}`">Crear</button>
-        <button @click="creatingList = false" class="px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style="background:var(--ml-bg);color:#64748b;">Cancelar</button>
+        <!-- Volver a todas -->
+        <button v-if="activeCustomListId"
+          @click="activeCustomListId = null"
+          class="px-3 py-2 rounded-xl text-sm border"
+          style="background:var(--ml-bg);color:#64748b;border-color:var(--ml-border);">✕ Quitar filtro</button>
       </div>
     </div>
 
