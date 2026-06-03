@@ -252,7 +252,12 @@ const fetchSeason = async () => {
 // Funciones de Navegación y Gestión de Eventos del Modal
 const goTo = (view: typeof activeView.value) => {
   activeView.value = view
-  if (view === 'season') fetchSeason()
+  if (view === 'season') {
+    // Resetear para que siempre use el nuevo código paginado
+    seasonLoaded.value = false
+    seasonAnimes.value = []
+    fetchSeason()
+  }
 }
 
 const onModalSaved = () => {
