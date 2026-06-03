@@ -571,7 +571,7 @@ onMounted(() => {
           </div>
 
           <!-- Paginación de temporada -->
-          <div v-if="!seasonLoading && seasonTotalPages > 1" class="pagination-bar mt-8">
+          <div v-if="!seasonLoading && seasonTotalPages > 1" class="pagination-wrap mt-10 flex flex-wrap items-center justify-center gap-2">
             <!-- Botón Anterior -->
             <button
               @click="goToSeasonPage(seasonCurrentPage - 1)"
@@ -581,12 +581,12 @@ onMounted(() => {
             >◀</button>
 
             <!-- Números de página -->
-            <template v-for="p in visibleSeasonPages" :key="p">
+            <template v-for="p in visibleSeasonPages" :key="typeof p === 'number' ? p : `ellipsis-s-${p}`">
               <span v-if="p === '...'" class="page-ellipsis">…</span>
               <button
                 v-else
                 @click="goToSeasonPage(p as number)"
-                :class="['page-btn', { 'page-active': p === seasonCurrentPage }]"
+                :class="p === seasonCurrentPage ? 'page-btn page-active' : 'page-btn page-idle'"
               >{{ p }}</button>
             </template>
 
