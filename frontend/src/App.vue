@@ -223,12 +223,23 @@ const fetchSeason = async () => {
   if (seasonLoaded.value) return
   seasonLoading.value = true
   try {
-    const res = await fetch('https://api.jikan.moe/v4/seasons/now?limit=24')
-    const data = await res.json()
-    // Deduplicar por mal_id por si la API devuelve duplicados
-    const raw: any[] = data.data || []
     const seen = new Map<number, any>()
-    raw.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
+    let page = 1
+    let hasNext = true
+
+    // Jikan limita a 25 por página — paginamos hasta traer todos
+    while (hasNext) {
+      const res = await fetch(`https://api.jikan.moe/v4/seasons/now?limit=25&page=${page}`)
+      if (!res.ok) break
+      const data = await res.json()
+      const items: any[] = data.data || []
+      items.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
+      hasNext = data.pagination?.has_next_page === true
+      page++
+      // Pequeña pausa entre peticiones para respetar el rate-limit de Jikan (3 req/s)
+      if (hasNext) await new Promise(r => setTimeout(r, 350))
+    }
+
     seasonAnimes.value = Array.from(seen.values())
     seasonLoaded.value = true
   } catch (e) {
@@ -500,9 +511,19 @@ onMounted(() => {
           <div class="flex items-center gap-3 mb-8">
             <div class="section-dot pink"></div>
             <h2 class="text-2xl font-bold text-white">🌸 Temporada Actual</h2>
+            <div class="flex-1 h-px section-divider"></div>
+            <span v-if="!seasonLoading && seasonAnimes.length > 0" class="text-xs section-count">
+              {{ seasonAnimes.length }} animes
+            </span>
           </div>
-          <div v-if="seasonLoading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
-            <div v-for="i in 12" :key="i" class="skeleton-card"></div>
+          <!-- Carga: esqueletos + mensaje de progreso -->
+          <div v-if="seasonLoading">
+            <p class="text-center text-sm text-white/40 mb-6 animate-pulse">
+              ⏳ Cargando todos los animes de la temporada...
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+              <div v-for="i in 24" :key="i" class="skeleton-card"></div>
+            </div>
           </div>
           <div v-else-if="seasonAnimes.length === 0 && seasonLoaded" class="text-center text-white/40 py-20 text-lg">
             No se encontraron animes de temporada.
@@ -513,7 +534,7 @@ onMounted(() => {
               :key="anime.mal_id"
               :anime="anime"
               @select="selectedAnime = $event"
-              :style="{ animationDelay: `${i * 40}ms` }"
+              :style="{ animationDelay: `${i * 30}ms` }"
               class="card-appear"
             />
           </div>
