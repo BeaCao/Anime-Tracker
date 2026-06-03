@@ -12,6 +12,10 @@ backend/src/main/resources/serviceAccountKey.json
 *.env
 .env
 .env.*
+.env.local
+frontend/.env
+frontend/.env.*
+frontend/.env.local
 
 # ─── Frontend ───────────────────────────────────
 frontend/node_modules/
