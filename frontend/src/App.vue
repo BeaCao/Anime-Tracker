@@ -307,6 +307,7 @@ const openRecommendation = async (rec: any) => {
 // ── Estadísticas globales de comunidad ──────────────────────────────────
 const communityUsers  = ref(0)
 const communityAnimes = ref(0)
+const communityLoaded = ref(false)
 
 onMounted(async () => {
   fetchGenres()
@@ -315,6 +316,7 @@ onMounted(async () => {
   const stats = await getPublicStats()
   communityUsers.value  = stats.userCount
   communityAnimes.value = stats.animeCount
+  communityLoaded.value = true
 })
 </script>
 
@@ -446,7 +448,7 @@ onMounted(async () => {
             </p>
 
             <!-- Píldoras de estadísticas de comunidad -->
-            <div v-if="communityUsers > 0 || communityAnimes > 0" class="flex flex-wrap gap-3 justify-center mb-8">
+            <div v-if="communityLoaded" class="flex flex-wrap gap-3 justify-center mb-8">
               <div class="community-pill">
                 <span class="community-dot community-dot-purple"></span>
                 <span class="font-black text-white">{{ communityUsers.toLocaleString('es-ES') }}</span>
@@ -658,6 +660,18 @@ onMounted(async () => {
     </div>
     <!-- Modal de Autenticación (fuera del v-else para que funcione desde la Landing) -->
     <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
+
+    <!-- Barra de comunidad fija en la parte inferior (visible desde cualquier vista) -->
+    <div v-if="communityLoaded" class="community-bar">
+      <span class="community-dot community-dot-purple" style="width:6px;height:6px"></span>
+      <span class="community-bar-label">Comunidad:</span>
+      <strong class="community-bar-num">{{ communityUsers.toLocaleString('es-ES') }}</strong>
+      <span class="community-bar-label">usuarios</span>
+      <span class="community-bar-sep">·</span>
+      <span class="community-dot community-dot-blue" style="width:6px;height:6px"></span>
+      <strong class="community-bar-num">{{ communityAnimes.toLocaleString('es-ES') }}</strong>
+      <span class="community-bar-label">animes guardados</span>
+    </div>
 
     <!-- Toast: sesión expirada por inactividad -->
     <transition name="toast">
@@ -1099,4 +1113,55 @@ onMounted(async () => {
 
 /* Toast de sesión expirada */
 .toast-enter-active, .toast-leave-active { transition: opacity 0.4s ease, transform 0.4s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(16px); }</style>
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(16px); }
+
+/* ── Píldoras y barra de estadísticas de comunidad ────────────────────── */
+.community-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 99px;
+  font-size: 0.85rem;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s;
+}
+.dark .community-pill {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}
+.community-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: community-pulse 2s ease-in-out infinite;
+}
+.community-dot-purple { background: #a855f7; box-shadow: 0 0 6px #a855f7; }
+.community-dot-blue   { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+@keyframes community-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Barra de comunidad fija al fondo (visible en todas las vistas) */
+.community-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background: rgba(3, 7, 18, 0.82);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.75rem;
+}
+.community-bar-label { color: rgba(255,255,255,0.4); }
+.community-bar-num   { color: white; font-size: 0.82rem; }
+.community-bar-sep   { color: rgba(255,255,255,0.2); margin: 0 0.25rem; }</style>
