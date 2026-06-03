@@ -15,7 +15,13 @@ const STATS_DOC = doc(db, 'publicStats', 'global')
 export const getPublicStats = async (): Promise<{ userCount: number; animeCount: number }> => {
   try {
     const snap = await getDoc(STATS_DOC)
-    if (snap.exists()) return snap.data() as any
+    if (snap.exists()) {
+      const d = snap.data()
+      return {
+        userCount:  Number(d.userCount)  || 0,
+        animeCount: Number(d.animeCount) || 0,
+      }
+    }
     return { userCount: 0, animeCount: 0 }
   } catch {
     return { userCount: 0, animeCount: 0 }

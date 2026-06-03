@@ -15,15 +15,16 @@ const displayUsers  = ref(0)
 const displayAnimes = ref(0)
 const statsLoaded   = ref(false)
 
-// Animación count-up suave
+// Animación count-up suave (con protección contra NaN/undefined)
 const animateCount = (target: number, setter: (v: number) => void, duration = 1800) => {
-  if (target === 0) { setter(0); return }
-  const start    = performance.now()
+  const safe = Number.isFinite(target) && target > 0 ? target : 0
+  if (safe === 0) { setter(0); return }
+  const start = performance.now()
   const step = (now: number) => {
     const progress = Math.min((now - start) / duration, 1)
     // easeOutExpo
     const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
-    setter(Math.round(ease * target))
+    setter(Math.round(ease * safe))
     if (progress < 1) requestAnimationFrame(step)
   }
   requestAnimationFrame(step)
