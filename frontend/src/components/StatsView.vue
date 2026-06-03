@@ -19,13 +19,42 @@ const fetchList = async () => {
 
 onMounted(fetchList)
 
-// Estadísticas calculadas (Computed properties)
+// ─── Estadísticas calculadas ────────────────────────────────────────────────
+
+// Episodios vistos: cuenta episodesWatched para TODOS los estados (incluyendo "Viendo")
+// Solo usa el total del anime como fallback para los que están en estado "Visto"
+// sin haber registrado episodios manualmente (asume que los vio todos)
 const totalEpisodes = computed(() =>
-  myList.value.reduce((sum, a) => sum + (a.episodesWatched || a.episodes || 0), 0)
+  myList.value.reduce((sum, a) => {
+    const watched = a.episodesWatched ?? 0
+    // Si tiene episodios registrados manualmente → usar esos (aplica a cualquier estado)
+    if (watched > 0) return sum + watched
+    // Si está marcado como "Visto" y no registró episodios → asumir que vio todos
+    if (a.watchStatus === 'Visto' && a.episodes) return sum + a.episodes
+    // Pendiente, En Espera, Abandonado sin episodios registrados → 0
+    return sum
+  }, 0)
 )
 
-const totalHours = computed(() => Math.round(totalEpisodes.value * 24 / 60))
-const totalDays = computed(() => (totalHours.value / 24).toFixed(1))
+// Desglose de episodios por estado (para mostrar en la UI)
+const episodesByStatus = computed(() => ({
+  visto:    myList.value.filter(a => a.watchStatus === 'Visto')
+              .reduce((s, a) => s + (a.episodesWatched > 0 ? a.episodesWatched : (a.episodes || 0)), 0),
+  viendo:   myList.value.filter(a => a.watchStatus === 'Viendo')
+              .reduce((s, a) => s + (a.episodesWatched || 0), 0),
+  otros:    myList.value.filter(a => !['Visto','Viendo'].includes(a.watchStatus))
+              .reduce((s, a) => s + (a.episodesWatched || 0), 0),
+}))
+
+const completedCount = computed(() => myList.value.filter(a => a.watchStatus === 'Visto').length)
+const watchingCount  = computed(() => myList.value.filter(a => a.watchStatus === 'Viendo').length)
+
+// 23.5 min/ep es la media real de anime (la mayoría son 23-24 min)
+const MINS_PER_EP = 23.5
+const totalMinutes = computed(() => Math.round(totalEpisodes.value * MINS_PER_EP))
+const totalHours   = computed(() => Math.floor(totalMinutes.value / 60))
+const totalDays    = computed(() => (totalMinutes.value / 60 / 24).toFixed(1))
+
 
 const scoreDistribution = computed(() => {
   const dist: Record<number, number> = {}
@@ -127,20 +156,31 @@ const statusEmoji: Record<string, string> = {
         <div class="bg-gray-800/60 border border-gray-700/40 rounded-2xl p-5 text-center">
           <p class="text-4xl font-bold text-white">{{ myList.length }}</p>
           <p class="text-gray-400 text-sm mt-1">Animes en lista</p>
+          <p class="text-gray-500 text-xs mt-2">
+            ✅ {{ completedCount }} vistos · ▶️ {{ watchingCount }} viendo
+          </p>
         </div>
         <div class="bg-blue-900/30 border border-blue-700/30 rounded-2xl p-5 text-center">
           <p class="text-4xl font-bold text-blue-400">{{ totalEpisodes.toLocaleString() }}</p>
           <p class="text-gray-400 text-sm mt-1">Episodios vistos</p>
+          <p class="text-gray-500 text-xs mt-2">
+            ✅ {{ episodesByStatus.visto.toLocaleString() }}
+            · ▶️ {{ episodesByStatus.viendo.toLocaleString() }}
+            <template v-if="episodesByStatus.otros > 0"> · otros {{ episodesByStatus.otros }}</template>
+          </p>
         </div>
         <div class="bg-purple-900/30 border border-purple-700/30 rounded-2xl p-5 text-center">
           <p class="text-4xl font-bold text-purple-400">{{ totalHours.toLocaleString() }}</p>
           <p class="text-gray-400 text-sm mt-1">Horas invertidas</p>
+          <p class="text-gray-500 text-xs mt-2">≈ {{ totalMinutes.toLocaleString() }} minutos</p>
         </div>
         <div class="bg-amber-900/30 border border-amber-700/30 rounded-2xl p-5 text-center">
           <p class="text-4xl font-bold text-amber-400">{{ totalDays }}</p>
           <p class="text-gray-400 text-sm mt-1">Días de anime</p>
+          <p class="text-gray-500 text-xs mt-2">a 23.5 min/episodio</p>
         </div>
       </div>
+
 
       <!-- Fila de distribución: Gráfico de donut y Top Géneros -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
