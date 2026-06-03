@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import AnimeCard from './components/AnimeCard.vue'
 import AnimeModal from './components/AnimeModal.vue'
 import MyListView from './components/MyListView.vue'
@@ -70,12 +70,51 @@ const enterDemoMode = () => {
   localStorage.setItem('isDemoMode', 'true')
 }
 
-const handleLogout = () => {
-  signOut(auth)
+const handleLogout = async () => {
+  await signOut(auth)
   isDemoMode.value = false
   localStorage.setItem('isDemoMode', 'false')
   activeView.value = 'explore'
 }
+
+// ── Auto-logout por inactividad (30 minutos) ──────────────────────────
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 min
+const sessionToast = ref(false)
+let inactivityTimer: ReturnType<typeof setTimeout> | null = null
+
+const resetInactivityTimer = () => {
+  if (!currentUser.value) return
+  if (inactivityTimer) clearTimeout(inactivityTimer)
+  inactivityTimer = setTimeout(async () => {
+    if (currentUser.value) {
+      await signOut(auth)
+      sessionToast.value = true
+      setTimeout(() => { sessionToast.value = false }, 5000)
+    }
+  }, SESSION_TIMEOUT_MS)
+}
+
+const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+
+const startActivityWatcher = () => {
+  ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }))
+  resetInactivityTimer()
+}
+
+const stopActivityWatcher = () => {
+  ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, resetInactivityTimer))
+  if (inactivityTimer) clearTimeout(inactivityTimer)
+}
+
+watch(currentUser, (user) => {
+  if (user) {
+    startActivityWatcher()
+  } else {
+    stopActivityWatcher()
+  }
+})
+
+onBeforeUnmount(stopActivityWatcher)
 
 // IDs de géneros adultos en MAL para el filtrado SFW (Safe For Work)
 const ADULT_GENRE_IDS = new Set([12, 49, 9979, 9801])
@@ -503,7 +542,18 @@ onMounted(() => {
     </div>
     <!-- Modal de Autenticación (fuera del v-else para que funcione desde la Landing) -->
     <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
+
+    <!-- Toast: sesión expirada por inactividad -->
+    <transition name="toast">
+      <div v-if="sessionToast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl text-white text-sm font-semibold"
+        style="background: rgba(239,68,68,0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.15);">
+        <span>⏱️</span>
+        <span>Sesión cerrada por inactividad. Vuelve a iniciar sesión.</span>
+      </div>
+    </transition>
   </div>
+
 </template>
 
 <style scoped>
@@ -899,4 +949,8 @@ onMounted(() => {
   margin-left: 0.5rem;
   font-weight: 600;
 }
-.light .page-info { color: rgba(0,0,0,0.35); }</style>
+.light .page-info { color: rgba(0,0,0,0.35); }
+
+/* Toast de sesión expirada */
+.toast-enter-active, .toast-leave-active { transition: opacity 0.4s ease, transform 0.4s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(16px); }</style>
