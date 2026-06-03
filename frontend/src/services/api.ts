@@ -1,5 +1,5 @@
 import { auth, db } from '../firebase'
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, increment, setDoc as firestoreSetDoc, updateDoc, getCountFromServer } from 'firebase/firestore'
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, increment } from 'firebase/firestore'
 
 // Guard: lanza un error claro si el usuario no está autenticado
 const requireAuth = () => {
