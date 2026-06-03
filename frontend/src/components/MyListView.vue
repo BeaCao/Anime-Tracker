@@ -48,11 +48,19 @@ const createList = async () => {
   }
 }
 
-const deleteCustomList = async (listId: string) => {
-  if (!confirm('¿Eliminar esta lista?')) return
+const listToDelete = ref<any | null>(null)
+
+const deleteCustomList = (listId: string) => {
+  listToDelete.value = customLists.value.find(l => l.listId === listId) || null
+}
+
+const confirmDeleteList = async () => {
+  if (!listToDelete.value) return
+  const { listId } = listToDelete.value
   await customListsApi.delete(listId)
   customLists.value = customLists.value.filter(l => l.listId !== listId)
   if (activeCustomListId.value === listId) activeCustomListId.value = null
+  listToDelete.value = null
 }
 
 const toggleAnimeInList = async (listId: string, malId: number) => {
@@ -587,7 +595,51 @@ defineExpose({ fetchList })
       </div>
     </div>
   </div>
+
+  <!-- Modal de confirmación de borrado de lista -->
+  <teleport to="body">
+    <transition name="fade-modal">
+      <div v-if="listToDelete" class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);"
+        @click.self="listToDelete = null">
+        <div class="rounded-2xl shadow-2xl border max-w-sm w-full p-6"
+          style="background:#1a1f35;border-color:rgba(255,255,255,0.1);">
+          <!-- Icono de alerta -->
+          <div class="flex justify-center mb-4">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+              :style="`background:${listToDelete.color}22;border:2px solid ${listToDelete.color}55`">
+              {{ listToDelete.emoji }}
+            </div>
+          </div>
+          <!-- Título y mensaje -->
+          <h3 class="text-white font-black text-center text-lg mb-1">¿Eliminar lista?</h3>
+          <p class="text-center text-gray-400 text-sm mb-1">
+            <span class="font-bold" :style="`color:${listToDelete.color}`">{{ listToDelete.name }}</span>
+          </p>
+          <p class="text-center text-gray-500 text-xs mb-6">
+            Esta lista contiene
+            <strong class="text-white">{{ listToDelete.animeIds?.length || 0 }} anime{{ listToDelete.animeIds?.length !== 1 ? 's' : '' }}</strong>.
+            Esta acción no se puede deshacer.
+          </p>
+          <!-- Acciones -->
+          <div class="flex gap-3">
+            <button @click="listToDelete = null"
+              class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+              style="background:rgba(255,255,255,0.07);color:#94a3b8;">
+              Cancelar
+            </button>
+            <button @click="confirmDeleteList"
+              class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+              style="background:linear-gradient(135deg,#ef4444,#dc2626);">
+              🗑️ Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
 </template>
+
 
 <style scoped>
 /* Estilos para las tarjetas de estadísticas */
@@ -660,6 +712,10 @@ defineExpose({ fetchList })
 .tab-btn.tab-active {
   box-shadow: 0 4px 14px rgba(37,99,235,0.35);
 }
+
+/* Transición del modal de confirmación */
+.fade-modal-enter-active, .fade-modal-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.fade-modal-enter-from, .fade-modal-leave-to { opacity: 0; transform: scale(0.95); }
 </style>
 
 <!-- Estilos globales (sin scoped) para que las variables CSS funcionen en ambos modos -->
