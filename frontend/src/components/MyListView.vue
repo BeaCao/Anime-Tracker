@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { api } from '../services/api'
+import { api, customListsApi } from '../services/api'
 
 const emit = defineEmits(['open-anime'])
 
@@ -18,6 +18,54 @@ const searchQuery = ref('')
 const viewMode = ref<'list' | 'grid'>(
   (localStorage.getItem('myListViewMode') as 'list' | 'grid') || 'list'
 )
+
+// ── Listas personalizadas ───────────────────────────────────────────────
+const customLists = ref<any[]>([])
+const activeCustomListId = ref<string | null>(null)
+const creatingList = ref(false)
+const newListName = ref('')
+const newListEmoji = ref('📁')
+const openListMenuId = ref<string | null>(null)
+const LIST_COLORS = ['#a855f7','#3b82f6','#ec4899','#f59e0b','#10b981','#ef4444','#06b6d4','#f97316']
+const newListColor = ref(LIST_COLORS[0])
+
+const fetchCustomLists = async () => {
+  try { customLists.value = await customListsApi.getAll() } catch {}
+}
+
+const createList = async () => {
+  const name = newListName.value.trim()
+  if (!name) return
+  const listId = `list_${Date.now()}`
+  const list = { listId, name, emoji: newListEmoji.value, color: newListColor.value, animeIds: [] }
+  await customListsApi.save(list)
+  customLists.value.push(list)
+  newListName.value = ''
+  creatingList.value = false
+}
+
+const deleteCustomList = async (listId: string) => {
+  if (!confirm('¿Eliminar esta lista?')) return
+  await customListsApi.delete(listId)
+  customLists.value = customLists.value.filter(l => l.listId !== listId)
+  if (activeCustomListId.value === listId) activeCustomListId.value = null
+}
+
+const toggleAnimeInList = async (listId: string, malId: number) => {
+  const list = customLists.value.find(l => l.listId === listId)
+  if (!list) return
+  if (list.animeIds.includes(malId)) {
+    await customListsApi.removeAnime(listId, malId)
+    list.animeIds = list.animeIds.filter((id: number) => id !== malId)
+  } else {
+    await customListsApi.addAnime(listId, malId)
+    list.animeIds.push(malId)
+  }
+  openListMenuId.value = null
+}
+
+const animeCustomLists = (malId: number) =>
+  customLists.value.filter(l => l.animeIds.includes(malId))
 
 const TABS = [
   { key: 'Todos', label: 'Todos', emoji: '📋' },
@@ -94,6 +142,13 @@ const allGenresInList = computed(() => {
 })
 
 const filteredList = computed(() => {
+  // Si hay una lista personalizada activa, filtrar por sus animeIds
+  if (activeCustomListId.value) {
+    const cl = customLists.value.find(l => l.listId === activeCustomListId.value)
+    if (!cl) return []
+    return myList.value.filter(a => cl.animeIds.includes(a.malId))
+  }
+
   let list = activeTab.value === 'Todos'
     ? [...myList.value]
     : myList.value.filter(a => a.watchStatus === activeTab.value)
@@ -101,7 +156,6 @@ const filteredList = computed(() => {
   if (filterGenre.value) list = list.filter(a => a.genres?.includes(filterGenre.value))
   if (filterMinScore.value > 0) list = list.filter(a => a.userScore >= filterMinScore.value)
 
-  // Búsqueda por título
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.trim().toLowerCase()
     list = list.filter(a =>
@@ -174,7 +228,10 @@ const openAnime = async (malId: number) => {
   } catch {}
 }
 
-onMounted(fetchList)
+onMounted(async () => {
+  await fetchList()
+  await fetchCustomLists()
+})
 defineExpose({ fetchList })
 </script>
 
@@ -235,17 +292,73 @@ defineExpose({ fetchList })
       </button>
     </div>
 
-    <!-- Pestañas de filtrado por estado -->
-    <div class="flex gap-1 overflow-x-auto mb-5 pb-1 scrollbar-none">
-      <button v-for="tab in TABS" :key="tab.key" @click="activeTab = tab.key"
-        :class="['tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap border shrink-0', activeTab === tab.key ? 'tab-active' : '']"
-        :style="activeTab === tab.key
+    <!-- Pestañas predefinidas por estado -->
+    <div class="flex gap-1 overflow-x-auto mb-2 pb-1 scrollbar-none">
+      <button v-for="tab in TABS" :key="tab.key"
+        @click="activeTab = tab.key; activeCustomListId = null"
+        :class="['tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap border shrink-0', activeTab === tab.key && !activeCustomListId ? 'tab-active' : '']"
+        :style="activeTab === tab.key && !activeCustomListId
           ? 'background:#2563eb;color:white;border-color:transparent'
           : `background:var(--ml-bg-2);color:#64748b;border-color:var(--ml-border)`">
         <span>{{ tab.emoji }} {{ tab.label }}</span>
-        <span :style="activeTab === tab.key ? 'background:rgba(255,255,255,0.2)' : `background:var(--ml-badge-off)`"
+        <span :style="activeTab === tab.key && !activeCustomListId ? 'background:rgba(255,255,255,0.2)' : `background:var(--ml-badge-off)`"
           class="text-xs px-1.5 py-0.5 rounded-full min-w-5 text-center">{{ countByTab(tab.key) }}</span>
       </button>
+    </div>
+
+    <!-- Listas personalizadas -->
+    <div class="mb-5">
+      <div class="flex items-center gap-1 mb-2 flex-wrap">
+        <!-- Tabs de listas personalizadas -->
+        <div v-for="cl in customLists" :key="cl.listId" class="relative group/cl">
+          <button
+            @click="activeCustomListId = cl.listId; activeTab = 'Todos'"
+            :style="activeCustomListId === cl.listId
+              ? `background:${cl.color}22;color:${cl.color};border-color:${cl.color}55`
+              : 'background:var(--ml-bg-2);color:#64748b;border-color:var(--ml-border)'"
+            class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap border shrink-0">
+            <span>{{ cl.emoji }} {{ cl.name }}</span>
+            <span class="text-xs px-1.5 rounded-full" :style="`background:${cl.color}33`">{{ cl.animeIds.length }}</span>
+          </button>
+          <!-- Botón borrar lista (hover) -->
+          <button @click.stop="deleteCustomList(cl.listId)"
+            class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-xs items-center justify-center hidden group-hover/cl:flex"
+            title="Eliminar lista">✕</button>
+        </div>
+
+        <!-- Botón crear nueva lista -->
+        <button v-if="!creatingList" @click="creatingList = true"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border border-dashed transition-colors"
+          style="background:transparent;color:#64748b;border-color:var(--ml-border);">
+          ＋ Nueva lista
+        </button>
+      </div>
+
+      <!-- Formulario inline de creación -->
+      <div v-if="creatingList" class="flex flex-wrap items-center gap-2 p-3 rounded-xl border"
+        style="background:var(--ml-bg-2);border-color:var(--ml-border);">
+        <!-- Selector de emoji -->
+        <select v-model="newListEmoji" class="rounded-lg px-2 py-1 text-sm outline-none cursor-pointer"
+          style="background:var(--ml-bg);color:var(--ml-text);border:1px solid var(--ml-border);">
+          <option v-for="e in ['📁','⭐','🔥','💎','😍','🎯','🎮','🌸','⚔️','🧠','🌊','👑']" :key="e" :value="e">{{ e }}</option>
+        </select>
+        <!-- Nombre de la lista -->
+        <input v-model="newListName" @keyup.enter="createList" @keyup.esc="creatingList = false"
+          placeholder="Nombre de la lista..." autofocus
+          class="flex-1 min-w-[160px] rounded-lg px-3 py-1.5 text-sm outline-none"
+          style="background:var(--ml-bg);color:var(--ml-text);border:1px solid var(--ml-border);" />
+        <!-- Selector de color -->
+        <div class="flex gap-1">
+          <button v-for="c in LIST_COLORS" :key="c" @click="newListColor = c"
+            :style="`background:${c};width:18px;height:18px;border-radius:50%;outline:${newListColor===c?`2px solid ${c}`:''};outline-offset:2px`"
+            class="transition-transform hover:scale-110 shrink-0"></button>
+        </div>
+        <!-- Acciones -->
+        <button @click="createList" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90"
+          :style="`background:${newListColor}`">Crear</button>
+        <button @click="creatingList = false" class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+          style="background:var(--ml-bg);color:#64748b;">Cancelar</button>
+      </div>
     </div>
 
     <!-- Filtros de género, puntuación y ordenación -->
@@ -360,6 +473,24 @@ defineExpose({ fetchList })
             style="background:var(--ml-bg-input);color:var(--ml-text);border:1px solid var(--ml-border-2);">
             <option v-for="s in watchStatusOptions" :key="s" :value="s">{{ watchStatusEmoji[s] }} {{ s }}</option>
           </select>
+
+          <!-- Opción para añadir a lista personalizada -->
+          <div v-if="customLists.length" class="relative">
+            <button @click.stop="openListMenuId = openListMenuId === item.malId ? null : item.malId"
+              class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white"
+              title="Añadir a lista">📁</button>
+            <!-- Dropdown de listas -->
+            <div v-if="openListMenuId === item.malId"
+              class="absolute right-0 bottom-8 z-50 min-w-[170px] rounded-xl shadow-2xl border p-1.5"
+              style="background:var(--ml-bg);border-color:var(--ml-border);">
+              <div v-for="cl in customLists" :key="cl.listId"
+                @click="toggleAnimeInList(cl.listId, item.malId)"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm hover:bg-white/5 transition-colors">
+                <span>{{ cl.emoji }} {{ cl.name }}</span>
+                <span v-if="cl.animeIds.includes(item.malId)" class="ml-auto text-xs font-bold" :style="`color:${cl.color}`">✓</span>
+              </div>
+            </div>
+          </div>
 
           <!-- Opción para eliminar de la lista -->
           <button @click="removeFromList(item.id)"

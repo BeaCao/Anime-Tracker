@@ -1,5 +1,5 @@
 import { auth, db } from '../firebase'
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, increment } from 'firebase/firestore'
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
 
 // Guard: lanza un error claro si el usuario no está autenticado
 const requireAuth = () => {
@@ -222,4 +222,58 @@ export const api = {
     }
     return null
   }
+}
+
+// ── Listas personalizadas del usuario ────────────────────────────────────
+
+export const customListsApi = {
+  // Obtiene todas las listas personalizadas del usuario
+  async getAll() {
+    const user = auth.currentUser
+    if (!user) return []
+    const q = query(collection(db, 'userLists'), where('userId', '==', user.uid))
+    const snap = await getDocs(q)
+    return snap.docs.map(d => d.data())
+  },
+
+  // Crea o actualiza una lista personalizada
+  async save(list: { listId: string; name: string; emoji: string; color: string; animeIds: number[] }) {
+    const user = auth.currentUser
+    if (!user) throw new Error('No autenticado')
+    const docId = `${user.uid}_${list.listId}`
+    await setDoc(doc(db, 'userLists', docId), {
+      ...list,
+      userId: user.uid,
+      updatedAt: Date.now(),
+    }, { merge: true })
+  },
+
+  // Elimina una lista personalizada
+  async delete(listId: string) {
+    const user = auth.currentUser
+    if (!user) return
+    await deleteDoc(doc(db, 'userLists', `${user.uid}_${listId}`))
+  },
+
+  // Añade un malId a una lista
+  async addAnime(listId: string, malId: number) {
+    const user = auth.currentUser
+    if (!user) return
+    await setDoc(
+      doc(db, 'userLists', `${user.uid}_${listId}`),
+      { animeIds: arrayUnion(malId) },
+      { merge: true }
+    )
+  },
+
+  // Quita un malId de una lista
+  async removeAnime(listId: string, malId: number) {
+    const user = auth.currentUser
+    if (!user) return
+    await setDoc(
+      doc(db, 'userLists', `${user.uid}_${listId}`),
+      { animeIds: arrayRemove(malId) },
+      { merge: true }
+    )
+  },
 }
