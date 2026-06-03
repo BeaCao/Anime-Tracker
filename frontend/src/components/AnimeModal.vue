@@ -389,9 +389,9 @@ onMounted(async () => {
                 :style="selectedListIds.has(cl.listId)
                   ? `background:${cl.color};color:white;border-color:${cl.color}`
                   : `background:${cl.color}18;color:${cl.color};border-color:${cl.color}44`"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all hover:opacity-90">
-                <span>{{ cl.emoji }} {{ cl.name }}</span>
-                <span v-if="selectedListIds.has(cl.listId)" class="text-white/80">✓</span>
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all hover:opacity-90 max-w-[160px]">
+                <span class="truncate">{{ cl.emoji }} {{ cl.name }}</span>
+                <span v-if="selectedListIds.has(cl.listId)" class="text-white/80 shrink-0">✓</span>
               </button>
             </div>
           </div>
