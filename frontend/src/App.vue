@@ -158,7 +158,11 @@ const fetchAnimes = async (url: string) => {
   try {
     const response = await fetch(url)
     const data = await response.json()
-    displayedAnimes.value = data.data || []
+    // Deduplicar por mal_id por si la API devuelve duplicados
+    const raw: any[] = data.data || []
+    const seen = new Map<number, any>()
+    raw.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
+    displayedAnimes.value = Array.from(seen.values())
     // Extraer info de paginación de la respuesta de Jikan
     const pag = data.pagination
     if (pag) {
@@ -221,7 +225,11 @@ const fetchSeason = async () => {
   try {
     const res = await fetch('https://api.jikan.moe/v4/seasons/now?limit=24')
     const data = await res.json()
-    seasonAnimes.value = data.data || []
+    // Deduplicar por mal_id por si la API devuelve duplicados
+    const raw: any[] = data.data || []
+    const seen = new Map<number, any>()
+    raw.forEach(a => { if (!seen.has(a.mal_id)) seen.set(a.mal_id, a) })
+    seasonAnimes.value = Array.from(seen.values())
     seasonLoaded.value = true
   } catch (e) {
     console.error('Error fetching season:', e)
