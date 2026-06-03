@@ -8,6 +8,7 @@ import AuthModal from './components/AuthModal.vue'
 import LandingView from './components/LandingView.vue'
 import { auth } from './firebase'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
+import { getPublicStats } from './services/api'
 
 // Gestión del Modo Oscuro (Dark Mode)
 const darkMode = ref(localStorage.getItem('darkMode') !== 'false')
@@ -303,9 +304,17 @@ const openRecommendation = async (rec: any) => {
   }
 }
 
-onMounted(() => {
+// ── Estadísticas globales de comunidad ──────────────────────────────────
+const communityUsers  = ref(0)
+const communityAnimes = ref(0)
+
+onMounted(async () => {
   fetchGenres()
   fetchAnimes(buildUrl(1))
+  // Cargar estadísticas de comunidad
+  const stats = await getPublicStats()
+  communityUsers.value  = stats.userCount
+  communityAnimes.value = stats.animeCount
 })
 </script>
 
@@ -432,9 +441,23 @@ onMounted(() => {
               Descubre el
               <span class="gradient-text">universo anime</span>
             </h1>
-            <p class="hero-sub mb-8">
+            <p class="hero-sub mb-6">
               Explora, puntúa y lleva el control de tus series favoritas
             </p>
+
+            <!-- Píldoras de estadísticas de comunidad -->
+            <div v-if="communityUsers > 0 || communityAnimes > 0" class="flex flex-wrap gap-3 justify-center mb-8">
+              <div class="community-pill">
+                <span class="community-dot community-dot-purple"></span>
+                <span class="font-black text-white">{{ communityUsers.toLocaleString('es-ES') }}</span>
+                <span class="text-gray-400 text-xs">usuarios registrados</span>
+              </div>
+              <div class="community-pill">
+                <span class="community-dot community-dot-blue"></span>
+                <span class="font-black text-white">{{ communityAnimes.toLocaleString('es-ES') }}</span>
+                <span class="text-gray-400 text-xs">animes guardados</span>
+              </div>
+            </div>
 
             <!-- Buscador Principal con Estilo Hero -->
             <div class="hero-search-wrap">
@@ -815,6 +838,36 @@ onMounted(() => {
   background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.1);
   color: rgba(255,255,255,0.6);
+}
+
+/* Píldoras de estadísticas de comunidad */
+.community-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 99px;
+  font-size: 0.85rem;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s;
+}
+.dark .community-pill {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}
+.community-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.community-dot-purple { background: #a855f7; box-shadow: 0 0 6px #a855f7; }
+.community-dot-blue   { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
 }
 .hero-title {
   font-size: clamp(2rem, 5vw, 3.5rem);
