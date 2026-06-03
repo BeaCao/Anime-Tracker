@@ -113,10 +113,23 @@ export const api = {
     const user = requireAuth()
     try {
       const docId = `${user.uid}_${anime.malId}`
-      const isNew = !(await getDoc(doc(db, 'user_animes', docId))).exists()
+
+      // Detectar si es un anime nuevo en la lista (para actualizar contadores)
+      // El getDoc puede fallar con permission-denied si el doc no existe aún
+      // (las reglas evalúan resource.data que es null en docs inexistentes)
+      // En ese caso asumimos que es nuevo — el setDoc posterior lo validará igualmente.
+      let isNew = true
+      try {
+        const existing = await getDoc(doc(db, 'user_animes', docId))
+        isNew = !existing.exists()
+      } catch {
+        isNew = true
+      }
+
       anime.userId = user.uid
       if (!anime.id) anime.id = Date.now()
       await setDoc(doc(db, 'user_animes', docId), anime)
+
       // Registrar usuario nuevo + incrementar contador de animes si es entrada nueva
       if (isNew) {
         await registerNewUser()
