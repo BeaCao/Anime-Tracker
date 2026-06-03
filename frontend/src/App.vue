@@ -500,9 +500,9 @@ onMounted(() => {
         @saved="onModalSaved"
         @select-rec="openRecommendation"
       />
-      <!-- Modal de Autenticación -->
-      <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
     </div>
+    <!-- Modal de Autenticación (fuera del v-else para que funcione desde la Landing) -->
+    <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
   </div>
 </template>
 
