@@ -435,11 +435,11 @@ defineExpose({ fetchList })
     <!-- VISTA DE LISTA DETALLADA -->
     <div v-else-if="viewMode === 'list'" class="space-y-2">
       <div v-for="item in filteredList" :key="item.id"
-        class="group rounded-2xl overflow-hidden flex items-stretch transition-all hover:shadow-lg"
+        class="group rounded-2xl flex items-stretch transition-all hover:shadow-lg"
         style="background:var(--ml-bg);border:1px solid var(--ml-border);">
         <!-- Imagen con enlace al modal de información -->
         <img :src="item.imageUrl" :alt="item.title"
-          class="w-16 h-20 object-cover shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+          class="w-16 h-20 object-cover shrink-0 cursor-pointer hover:opacity-90 transition-opacity rounded-l-2xl"
           @click="openAnime(item.malId)"
           :title="'Ver info de ' + item.title">
 
@@ -508,12 +508,16 @@ defineExpose({ fetchList })
             <button @click.stop="openListMenuId = openListMenuId === item.malId ? null : item.malId"
               class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white"
               title="Añadir a lista">📁</button>
-            <!-- Dropdown de listas -->
+            <!-- Backdrop para cerrar al hacer click fuera -->
             <div v-if="openListMenuId === item.malId"
-              class="absolute right-0 bottom-8 z-50 min-w-[170px] rounded-xl shadow-2xl border p-1.5"
+              class="fixed inset-0 z-40"
+              @click="openListMenuId = null"></div>
+            <!-- Dropdown de listas: siempre hacia abajo -->
+            <div v-if="openListMenuId === item.malId"
+              class="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-xl shadow-2xl border p-1.5"
               style="background:var(--ml-bg);border-color:var(--ml-border);">
               <div v-for="cl in customLists" :key="cl.listId"
-                @click="toggleAnimeInList(cl.listId, item.malId)"
+                @click.stop="toggleAnimeInList(cl.listId, item.malId)"
                 class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm hover:bg-white/5 transition-colors">
                 <span>{{ cl.emoji }} {{ cl.name }}</span>
                 <span v-if="cl.animeIds.includes(item.malId)" class="ml-auto text-xs font-bold" :style="`color:${cl.color}`">✓</span>
